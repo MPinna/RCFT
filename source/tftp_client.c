@@ -38,13 +38,26 @@ int get_transfer_mode(char *cmd)
 
 int main(int argc, char const *argv[])
 {
+    int quiet_mode = 0;
+    int cmd_code = 0;
     short port_number;
+    int temp_mode, transfer_mode;
+    char* NETASCII_MODE = "netascii",
+          *OCTET_MODE = "octet",
+          user_cmd[MAX_USER_CMD_LENGTH];
 
-    if(argc != 3)
+    if(argc < 3)
     {
         printf("Usage: ./tftp_server <server IP> <server port>\n");
         exit(1);
     }
+
+    // set quiet mode if user passed '-q' flag
+    if(argc == 4 && !(strcmp(argv[3], QUIET_MODE_FLAG)))
+        quiet_mode = 1;
+
+    if(!quiet_mode)
+        print_help_text();
 
     port_number = atoi(argv[2]);
 
