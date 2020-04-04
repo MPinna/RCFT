@@ -1,6 +1,12 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "const.h"
+
+#define QUIET_MODE_FLAG "-q"
+#define MAX_USER_CMD_LENGTH 1024
+#define NETASCII_MODE 0
+#define OCTET_MODE 1
 
 void print_help_text()
 {
