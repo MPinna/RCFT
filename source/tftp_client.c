@@ -14,6 +14,28 @@ void print_help_text()
     printf("%s", help_text);
 }
 
+int get_user_command(char *cmd)
+{
+    if(strncmp(cmd, "!help ", 6) == 0)
+        return 0;
+    if(strncmp(cmd, "!mode ", 6) == 0)
+        return 1;
+    if(strncmp(cmd, "!get ", 5) == 0)
+        return 2;
+    if(strncmp(cmd, "!quit ", 6) == 0)
+        return 3;
+    return -1;
+}
+
+int get_transfer_mode(char *cmd)
+{
+    if(strcmp(cmd, "!get txt") == 0)
+        return 0;
+    if(strcmp(cmd, "!get bin") == 0)
+        return 1;
+    return -1;
+}
+
 int main(int argc, char const *argv[])
 {
     short port_number;
