@@ -61,6 +61,30 @@ int main(int argc, char const *argv[])
 
     port_number = atoi(argv[2]);
 
-    print_help_text();
+    while(1)
+    {
+        fgets(user_cmd, MAX_USER_CMD_LENGTH, stdin);
+        cmd_code = get_user_command(user_cmd);
+        switch (cmd_code)
+        {
+        case 0: // !help
+            print_help_text();
+            break;
+        case 1: // !mode
+            temp_mode = get_transfer_mode(user_cmd);
+            if()
+            break;
+        case 2: // !get
+
+            break;
+        case 3: // !quit
+            printf("Goodbye\n")
+            return 0;
+        default:
+            printf("Comando non riconosciuto\n");
+            print_help_text();
+            break;
+        }
+    }
     return 0;
 }
