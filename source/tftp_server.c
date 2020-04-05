@@ -1,6 +1,5 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include "const.h"
+#include "include/const.h"
+#include "include/util.h"
 
 int main(int argc, char const *argv[])
 {
