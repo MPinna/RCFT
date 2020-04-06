@@ -19,9 +19,9 @@ int get_user_command(char *cmd)
 {
     if(strncmp(cmd, "!help", 5) == 0)
         return 0;
-    if(strncmp(cmd, "!mode ", 6) == 0)
+    if(strncmp(cmd, "!mode", 5) == 0)
         return 1;
-    if(strncmp(cmd, "!get ", 5) == 0)
+    if(strncmp(cmd, "!get", 4) == 0)
         return 2;
     if(strncmp(cmd, "!quit", 5) == 0)
         return 3;
