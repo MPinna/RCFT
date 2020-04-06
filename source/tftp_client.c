@@ -68,20 +68,56 @@ int main(int argc, char const *argv[])
           *remote_filename,
           *local_filename;
 
+    // sockets variables
+    int sd;
+    char sv_addr_string[ADDR_STRING_LENGTH];
+    short sv_port;
+    struct sockaddr_in sv_addr, my_addr;
+    socklen_t addrlen = sizeof(sv_addr);
+
     if(argc < 3)
     {
         printf("Usage: ./tftp_server <server IP> <server port> [flags]\n");
         exit(0);
     }
 
+    strcpy(sv_addr_string, argv[1]);
+    sv_port = atoi(argv[2]);
+    
     // set quiet mode if user passed '-q' flag
     if(argc == 4 && (strcmp(argv[3], QUIET_MODE_FLAG)) == 0)
         quiet_mode = 1;
     if(!quiet_mode)
         print_help_text();
 
-    strcpy(sv_addr_string, argv[1]);
-    port_number = atoi(argv[2]);
+
+    sd = socket(AF_INET, SOCK_DGRAM, 0);
+    if(sd == -1)
+    {
+        printf("An error has occurred during the creation of the socket\n");
+        perror("Error");
+        exit(1);
+    }
+
+    printf("Socket %d created succesfully\n", sd);
+
+    memset(&my_addr, 0, sizeof(my_addr));
+    my_addr.sin_family = AF_INET;
+    my_addr.sin_port = htons(sv_port);
+    my_addr.sin_addr.s_addr = INADDR_ANY;
+
+    ret = bind(sd, (struct sockaddr*)&my_addr, sizeof(my_addr));
+    if(ret == -1)
+    {
+        printf("An error has occurred during the bind() function\n");
+        perror("Error");
+        exit(0);
+    }
+
+    memset(&sv_addr, 0, sizeof(sv_addr));
+    sv_addr.sin_family = AF_INET;
+    sv_addr.sin_port = htons(sv_port);
+    inet_pton(AF_INET, sv_addr_string, &sv_addr.sin_addr);
 
     while(1)
     {
