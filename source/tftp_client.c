@@ -53,12 +53,10 @@ int get_filenames(char* user_get_command, char** remote, char** local)
 
 int main(int argc, char const *argv[])
 {
-    int quiet_mode = 0, cmd_code = 0, ret;
-    short port_number;
-    int temp_mode, transfer_mode = 1; //default transfer mode: bin
+    int quiet_mode = 0, cmd_code = 0, ret,
+        temp_mode, transfer_mode = 1; //default transfer mode: bin
     char* NETASCII_MODE_S = "netascii",
           *OCTET_MODE_S = "octet",
-          sv_addr_string[ADD_STRING_LENGTH],
           user_cmd[MAX_USER_CMD_LENGTH],
           replace_choice[3],
           *remote_filename,
@@ -71,9 +69,8 @@ int main(int argc, char const *argv[])
     }
 
     // set quiet mode if user passed '-q' flag
-    if(argc == 4 && !(strcmp(argv[3], QUIET_MODE_FLAG)))
+    if(argc == 4 && (strcmp(argv[3], QUIET_MODE_FLAG)) == 0)
         quiet_mode = 1;
-
     if(!quiet_mode)
         print_help_text();
 
@@ -84,7 +81,6 @@ int main(int argc, char const *argv[])
     {
         fgets(user_cmd, MAX_USER_CMD_LENGTH, stdin);
         user_cmd[strcspn(user_cmd, "\n")] = 0; //remove trailing newline
-        printf("User command: %s\n", user_cmd);
         cmd_code = get_user_command(user_cmd);
         switch (cmd_code)
         {
@@ -94,7 +90,7 @@ int main(int argc, char const *argv[])
             case 1: // !mode
                 temp_mode = get_transfer_mode(user_cmd);
                 if(temp_mode == -1)
-                    printf("Invalid transfer mode\n");
+                    printf("Invalid transfer mode\nUsage: !mode {txt|bin}\n");
                 else
                 {
                     transfer_mode = temp_mode;
@@ -127,7 +123,8 @@ int main(int argc, char const *argv[])
                             break;
                         }
                     }
-                    printf("Trasferisco il file remoto %s dal server %s in %s\n", remote_filename, sv_addr_string, local_filename);
+                    printf("Trasferisco il file remoto %s dal server %s:%d in %s\n", remote_filename, sv_addr_string, sv_port, local_filename);
+                    // ret = 
                 }
                 
                 break;
