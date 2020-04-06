@@ -1,6 +1,14 @@
 #include "include/const.h"
 #include "include/util.h"
 
+#define MAX_CLIENTS 10
+
+
+int send_error_packet()
+{
+    return 0;
+}
+
 int main(int argc, char const *argv[])
 {
     short port_number;
