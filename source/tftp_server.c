@@ -1,8 +1,16 @@
 #include "include/const.h"
 #include "include/util.h"
+#include <time.h>
 
 #define MAX_CLIENTS 10
+#define MAX_DIR_LENGTH 200
+#define LOG_FILE "./log.txt"
+#define LOG_LOCK_FILE "./log.lock"
 
+void log(char* message)
+{
+
+}
 
 void error(char* err_msg)
 {
@@ -18,7 +26,7 @@ int send_error()
 
 int main(int argc, char const *argv[])
 {
-    short port_number;
+    FILE* log;
 
     if(argc != 3)
     {
