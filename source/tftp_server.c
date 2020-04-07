@@ -26,8 +26,13 @@ int send_error()
 
 int main(int argc, char const *argv[])
 {
+    int ret, listening_socket, transfer_socket;
+    unsigned short port_number;
     FILE* log;
 
+    pid_t PID;
+
+    struct sockaddr_in my_addr, sv_transfer_addr, cl_addr;
     if(argc != 3)
     {
         printf("Usage: ./tftp_server <port> <path/to/files>\n");
@@ -37,7 +42,24 @@ int main(int argc, char const *argv[])
 
     port_number = atoi(argv[1]);
     
-    // printf("Providing files in directory %s on port %d\n", argv[2], port_number);
-    printf("%d %d %d %d %d", RRQ_OPCODE, WRQ_OPCODE, DTA_OPCODE, ACK_OPCODE, ERR_OPCODE);
+    listening_socket = socket(AF_INET, SOCK_DGRAM, 0);
+    if(listening_socket < 0)
+        error("creation of the socket");
+
+    printf("Listening socket successfully created: %d\n", listening_socket);
+
+    memset(&my_addr, 0, sizeof(my_addr));
+    my_addr.sin_family = AF_INET;
+    my_addr.sin_port = htons(port_number);
+    my_addr.sin_addr.s_addr = INADDR_ANY;
+
+    ret = bind(listening_socket, (struct sockaddr*)&my_addr, sizeof(my_addr));
+    if(ret)
+        error("bind on listening_socket");
+
+    printf("bind() succesful on socket %d\n", listening_socket);
+    printf("Ready to serve requests on port %d\n", port_number);
+
+
     return 0;
 }
