@@ -67,7 +67,7 @@ int main(int argc, char const *argv[])
     // sockets variables
     int sd;
     char sv_addr_string[ADDR_STRING_LENGTH];
-    short sv_port;
+    unsigned short sv_port;
     struct sockaddr_in sv_addr, my_addr;
     socklen_t addrlen = sizeof(sv_addr);
 
