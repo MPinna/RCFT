@@ -33,6 +33,9 @@ int main(int argc, char const *argv[])
     pid_t PID;
 
     struct sockaddr_in my_addr, sv_transfer_addr, cl_addr;
+
+    char local_directory[MAX_DIR_LENGTH];
+
     if(argc != 3)
     {
         printf("Usage: ./tftp_server <port> <path/to/files>\n");
@@ -41,6 +44,14 @@ int main(int argc, char const *argv[])
 
 
     port_number = atoi(argv[1]);
+    if(strlen(argv[2]) >= MAX_DIR_LENGTH)
+    {
+        printf("Pathname too long. Quitting...");
+        exit(0);
+    }
+    strcpy(local_directory, argv[2]);
+    
+    printf("Providing files in directory %s on port %d\n", local_directory, port_number);
     
     listening_socket = socket(AF_INET, SOCK_DGRAM, 0);
     if(listening_socket < 0)
