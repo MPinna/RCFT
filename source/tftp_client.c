@@ -51,11 +51,7 @@ int get_filenames(char* user_get_command, char** remote, char** local)
     return 0;
 }
 
-int send_txt_RRQ(int sd, const char *remote_file, struct sockaddr_in *sv_addr)
-{
-    // int ret = sendto(sd, "REQ");
-    return 0;
-}
+
 
 int main(int argc, char const *argv[])
 {
