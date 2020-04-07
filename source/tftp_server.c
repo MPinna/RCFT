@@ -11,6 +11,8 @@ void error(char* err_msg)
     exit(1);
 }
 
+int send_error()
+{
     return 0;
 }
 
