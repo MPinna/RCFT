@@ -4,8 +4,13 @@
 #define MAX_CLIENTS 10
 
 
-int send_error_packet()
+void error(char* err_msg)
 {
+    printf("An error has occurred in: %s\n", err_msg);
+    perror("Error");
+    exit(1);
+}
+
     return 0;
 }
 
