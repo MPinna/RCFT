@@ -52,7 +52,7 @@ int main(int argc, char const *argv[])
     strcpy(local_directory, argv[2]);
     
     printf("Providing files in directory %s on port %d\n", local_directory, port_number);
-    
+
     listening_socket = socket(AF_INET, SOCK_DGRAM, 0);
     if(listening_socket < 0)
         error("creation of the socket");
