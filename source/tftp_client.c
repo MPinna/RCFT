@@ -37,17 +37,25 @@ int get_transfer_mode(char *cmd)
     return -1;
 }
 
-int get_filenames(char* user_get_command, char** remote, char** local)
+int get_filenames(char* user_get_command, char *remote, char *local)
 {
+    int i;
     char* token = strtok(user_get_command, " "); //discard "!get " part of user command
-    *remote = strtok(NULL, " ");    // save the first two arguments into remote and local
-    if(!(*remote))
-        return -1;
+    if(token == NULL)
+    {
+        error("Malformed get input");
+    }
 
-    *local = strtok(NULL, " ");
-    if(!(*local))
+    for(i = 0; token != NULL && i < 2; ++i)// any additional parameters are ignored
+    {
+        token = strtok(NULL, " ");
+        if(token == NULL)
         return -1;
-
+        if(i == 0)
+            strcpy(remote, token);
+        if(i == 1)
+            strcpy(local, token);
+    }
     return 0;
 }
 
@@ -61,8 +69,8 @@ int main(int argc, char const *argv[])
           *OCTET_MODE_S = "octet",
           user_cmd[MAX_USER_CMD_LENGTH],
           replace_choice[3],
-          *remote_filename,
-          *local_filename;
+          remote_filename[MAX_FILENAME_LENGTH],
+          local_filename[MAX_FILENAME_LENGTH];
 
     // sockets variables
     int sd;
