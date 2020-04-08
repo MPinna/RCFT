@@ -50,7 +50,7 @@ int get_filenames(char* user_get_command, char *remote, char *local)
     {
         token = strtok(NULL, " ");
         if(token == NULL)
-        return -1;
+            return -1;
         if(i == 0)
             strcpy(remote, token);
         if(i == 1)
@@ -59,7 +59,10 @@ int get_filenames(char* user_get_command, char *remote, char *local)
     return 0;
 }
 
-
+void request_file(int sd, struct sockaddr_in *sv_addr, char *remote_filename, char *local_filename, int transfer_mode)
+{
+    // int ret = recvfrom(sd,);
+}
 
 int main(int argc, char const *argv[])
 {
@@ -97,11 +100,7 @@ int main(int argc, char const *argv[])
 
     sd = socket(AF_INET, SOCK_DGRAM, 0);
     if(sd == -1)
-    {
-        printf("An error has occurred during the creation of the socket\n");
-        perror("Error");
-        exit(1);
-    }
+        error("Creation of the socket failed");
 
     printf("Socket %d created succesfully\n", sd);
 
@@ -112,11 +111,7 @@ int main(int argc, char const *argv[])
 
     ret = bind(sd, (struct sockaddr*)&my_addr, sizeof(my_addr));
     if(ret == -1)
-    {
-        printf("An error has occurred during the bind() function\n");
-        perror("Error");
-        exit(0);
-    }
+        error("bind function failed");
 
     memset(&sv_addr, 0, sizeof(sv_addr));
     sv_addr.sin_family = AF_INET;
@@ -147,7 +142,7 @@ int main(int argc, char const *argv[])
                 }
                 break;
             case 2: // !get
-                ret = get_filenames(user_cmd, &remote_filename, &local_filename);
+                ret = get_filenames(user_cmd, remote_filename, local_filename);
                 if(ret == -1)
                     printf("Usage: !get <filename> <local_name>\n");
                 else
@@ -169,8 +164,8 @@ int main(int argc, char const *argv[])
                             break;
                         }
                     }
-                    printf("Trasferisco il file remoto %s dal server %s:%d in %s\n", remote_filename, sv_addr_string, sv_port, local_filename);
-                    // ret = 
+                    printf("Downloading file %s from server at %s:%d to %s. Transfer mode: %s\n", remote_filename, sv_addr_string, sv_port, local_filename, (transfer_mode?OCTET_MODE_S:NETASCII_MODE_S));
+                    request_file(sd, &sv_addr, remote_filename, local_filename, transfer_mode);
                 }
                 
                 break;
