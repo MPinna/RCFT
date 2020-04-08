@@ -7,3 +7,4 @@
 #include <netinet/in.h>
 
 int exists(const char* file);
+void error(char* err_msg);

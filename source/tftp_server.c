@@ -12,13 +12,6 @@ void log(char* message)
 
 }
 
-void error(char* err_msg)
-{
-    printf("An error has occurred in: %s\n", err_msg);
-    perror("Error");
-    exit(1);
-}
-
 int send_error()
 {
     return 0;
