@@ -9,4 +9,7 @@ short ILLEGAL_OP_ERR_CODE = 0x4;
 
 short MAX_CHUNK_SIZE = 512;
 
+char *NETASCII_MODE_S = "netascii",
+     *OCTET_MODE_S = "octet";
+
 #define ADDR_STRING_LENGTH 16
