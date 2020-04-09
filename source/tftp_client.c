@@ -7,6 +7,11 @@
 #define NETASCII_MODE 0
 #define OCTET_MODE 1
 
+
+#define RRQ_PACKET_MAX_SIZE 212
+// 2 + 200 + 1 + 8 + 1 [OPCODE + FILENAME + \0 + strlen("netascii") + \0]
+
+
 void print_help_text()
 {
     char* help_text = "The following commands are available:\n!help\t\t\t\t--> lists the available commands\n!mode {txt|bin} \t\t--> set file transfer mode (text or binary)\n!get <filename> <local_name>    --> request the file <filename> to the server and save it locally as <local_name>\n!quit\t\t\t\t--> exit the client\n\n";
@@ -30,9 +35,9 @@ int get_user_command(char *cmd)
 
 int get_transfer_mode(char *cmd)
 {
-    if(strcmp(cmd, "!mode txt\n") == 0)
+    if(strcmp(cmd, "!mode txt") == 0)
         return 0;
-    if(strcmp(cmd, "!mode bin\n") == 0)
+    if(strcmp(cmd, "!mode bin") == 0)
         return 1;
     return -1;
 }
@@ -59,18 +64,99 @@ int get_filenames(char* user_get_command, char *remote, char *local)
     return 0;
 }
 
+void txt_transfer(int sd, char* buffer, struct sockaddr_in sv_addr, char* local_filename, int len)
+{
+    short opcode,
+
+    FILE *dest;
+    dest = fopen(local_filename, "w");
+    if(!dest)
+    {
+        printf("Can't open %s\n", local_filename);
+        return;
+    }
+}
+
+void bin_transfer(int sd, char* buffer, struct sockaddr_in sv_addr, char* local_filename, int len)
+{
+    return;
+}
+
 void request_file(int sd, struct sockaddr_in *sv_addr, char *remote_filename, char *local_filename, int transfer_mode)
 {
-    // int ret = recvfrom(sd,);
+    short opcode = htons(RRQ_OPCODE);
+    short errcode;
+    char buffer[MAX_PKT_SIZE];
+
+    struct sockaddr_in sv_transfer_addr;
+
+    // socket used to receive the file from the server
+    socklen_t sv_transfer_addr_len = sizeof(sv_transfer_addr);
+    int ret, response_length, pos = 0;
+
+    // craft the RRQ packet to be sent
+    memcpy(buffer + pos, &opcode, sizeof(opcode));
+    pos += sizeof(opcode);
+
+    strcpy(buffer + pos, remote_filename);
+    pos += strlen(remote_filename) + 1;
+
+    printf("Transfer mode: ");
+    if(transfer_mode == 0)
+    {
+        strcpy(buffer + pos, OCTET_MODE_S);
+        pos += strlen(OCTET_MODE_S) + 1;
+    }
+    else
+    {
+        strcpy(buffer + pos, NETASCII_MODE_S);
+        pos += strlen(NETASCII_MODE_S) + 1;
+    }
+
+    // send the RRQ packet
+    ret = sendto(sd, buffer, pos, 0, (struct sockaddr*)&sv_addr, sizeof(sv_addr));
+
+    // receive server response
+    response_length = recvfrom(sd, buffer, MAX_PKT_SIZE, 0, (struct sockaddr*)&sv_transfer_addr, &sv_transfer_addr_len);
+
+    pos = 0;
+
+    memcpy(&opcode, buffer + pos, sizeof(opcode));
+    pos += sizeof(opcode);
+
+    // handle error
+    opcode = ntohs(opcode);
+    if(opcode == ERR_OPCODE)
+    {
+        memcpy(&errcode, buffer + pos, sizeof(errcode));
+        switch (errcode)
+        {
+        case NOT_FOUND_ERRCODE:
+            printf("Error: file %s not found on server. Quitting...\n", remote_filename);
+            break;
+        case ILLEGAL_OP_ERRCODE:
+            printf("Error: illegal operation. Quitting...\n");
+            break;
+        default:
+            printf("Unknow error type. Quitting...\n");
+            break;
+        }
+        return;
+    }
+
+    printf("Starting download...\n");
+    if(transfer_mode == NETASCII_MODE_S)
+        txt_transfer();
+    else
+        bin_transfer();
+    return;
 }
 
 int main(int argc, char const *argv[])
 {
     int quiet_mode = 0, cmd_code = 0, ret,
         temp_mode, transfer_mode = 1; //default transfer mode: bin
-    char* NETASCII_MODE_S = "netascii",
-          *OCTET_MODE_S = "octet",
-          user_cmd[MAX_USER_CMD_LENGTH],
+    char  user_cmd[MAX_USER_CMD_LENGTH],
           replace_choice[3],
           remote_filename[MAX_FILENAME_LENGTH],
           local_filename[MAX_FILENAME_LENGTH];
@@ -147,8 +233,6 @@ int main(int argc, char const *argv[])
                     printf("Usage: !get <filename> <local_name>\n");
                 else
                 {
-                    printf("remote_filename: %s\n", remote_filename);
-                    printf("local_filename: %s\n", local_filename);
                     if(exists(local_filename))
                     {
                         printf("%s already exists. Do you wish to replace it? Y/n\n", local_filename);
@@ -164,8 +248,9 @@ int main(int argc, char const *argv[])
                             break;
                         }
                     }
-                    printf("Downloading file %s from server at %s:%d to %s. Transfer mode: %s\n", remote_filename, sv_addr_string, sv_port, local_filename, (transfer_mode?OCTET_MODE_S:NETASCII_MODE_S));
+                    printf("Downloading file %s from server at %s:%d to %s. Transfer mode: %s\n", remote_filename, sv_addr_string, sv_port, local_filename, ((transfer_mode == OCTET_MODE)?OCTET_MODE_S:NETASCII_MODE_S));
                     request_file(sd, &sv_addr, remote_filename, local_filename, transfer_mode);
+
                 }
                 
                 break;
@@ -178,5 +263,6 @@ int main(int argc, char const *argv[])
                 break;
         }
     }
+    close(sd);
     return 0;
 }
