@@ -1,15 +1,16 @@
-short RRQ_OPCODE = 0x01;
-short WRQ_OPCODE = 0x02;
-short DTA_OPCODE = 0x03;
-short ACK_OPCODE = 0x04;
-short ERR_OPCODE = 0x05;
+#define RRQ_OPCODE 0x01
+#define WRQ_OPCODE 0x02
+#define DTA_OPCODE 0x03
+#define ACK_OPCODE 0x04
+#define ERR_OPCODE 0x05
 
-short NOT_FOUND_ERR_CODE = 0x1;
-short ILLEGAL_OP_ERR_CODE = 0x4;
+#define NOT_FOUND_ERRCODE 0x1
+#define ILLEGAL_OP_ERRCODE 0x4
 
-short MAX_CHUNK_SIZE = 512;
+#define MAX_DATA_SEGMENT_SIZE 512
+#define MAX_PKT_SIZE 516
 
-char *NETASCII_MODE_S = "netascii",
-     *OCTET_MODE_S = "octet";
+#define NETASCII_MODE_S "netascii\0"
+#define OCTET_MODE_S "octet\0"
 
 #define ADDR_STRING_LENGTH 16
