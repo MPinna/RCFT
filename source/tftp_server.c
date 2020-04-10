@@ -44,8 +44,46 @@ void send_ERR(int listening_socket, struct sockaddr_in cl_addr, short errcode)
         printf("An error has occurred while trying to send the ERR packet to the client\n");
     return;
 }
+
+int is_request_valid(int listening_socket, char *buffer, int* transfer_mode, struct sockaddr_in cl_addr)
 {
+    uint16_t opcode;
+    char local_filename[MAX_DIR_LENGTH],
+        transfer_mode_s[TRANSFER_MODE_MAX_LEN],
+        filepath[2*MAX_DIR_LENGTH]; // will contain the full path of the file being requested
+    
+    strcpy(filepath, BASE_DIRECTORY);
+
+    int pos = 0;
+    memcpy(&opcode, buffer + pos, sizeof(opcode));
+    pos += sizeof(opcode);
+
+    opcode = ntohs(opcode);
+    if(opcode != RRQ_OPCODE)
+    {
+        send_ERR(listening_socket, cl_addr, ILLEGAL_OP_ERRCODE);
+        printf("Illegal operation\n");
+        return 0;
+    }
+
+    strcpy(local_filename, buffer + pos);
+    pos += strlen(local_filename) + 1; // add 1 to account for string terminator
+
+    strcpy(transfer_mode_s, buffer + pos);
+    strcat(filepath, local_filename);
+    if(!exists(filepath))
+{
+        send_ERR(listening_socket, cl_addr, NOT_FOUND_ERRCODE);
+        printf("File not found\n");
     return 0;
+}
+
+    if(strcmp(transfer_mode_s, NETASCII_MODE_S))
+        *transfer_mode = NETASCII_MODE;
+    else
+        if(strcmp(transfer_mode_s, OCTET_MODE_S))
+        *transfer_mode = OCTET_MODE;
+    return 1;
 }
 
 int main(int argc, char const *argv[])
