@@ -190,7 +190,7 @@ int main(int argc, char const *argv[])
 
     memset(&my_addr, 0, sizeof(my_addr));
     my_addr.sin_family = AF_INET;
-    my_addr.sin_port = htons(sv_port);
+    my_addr.sin_port = 0; // bind socket to first available port
     my_addr.sin_addr.s_addr = INADDR_ANY;
 
     ret = bind(sd, (struct sockaddr*)&my_addr, sizeof(my_addr));
@@ -250,7 +250,6 @@ int main(int argc, char const *argv[])
                     request_file(sd, &sv_addr, remote_filename, local_filename, transfer_mode);
 
                 }
-                
                 break;
             case 3: // !quit
                 printf("Goodbye\n");
