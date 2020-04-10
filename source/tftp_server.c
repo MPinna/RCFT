@@ -9,6 +9,14 @@
 
 void log(char* message)
 {
+    FILE *logptr;
+    logptr = fopen(LOG_FILE, "w+");
+    if(logptr == 0)
+    {
+        printf("Error: can't open %s\n", LOG_FILE);
+        return;
+    }
+
 
 }
 
