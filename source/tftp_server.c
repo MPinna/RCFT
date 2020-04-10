@@ -4,6 +4,7 @@
 
 #define MAX_CLIENTS 10
 #define MAX_DIR_LENGTH 200
+#define BASE_DIRECTORY "./files/\0"
 #define LOG_FILE "./log.txt"
 #define LOG_LOCK_FILE "./log.lock"
 
@@ -72,11 +73,11 @@ int is_request_valid(int listening_socket, char *buffer, int* transfer_mode, str
     strcpy(transfer_mode_s, buffer + pos);
     strcat(filepath, local_filename);
     if(!exists(filepath))
-{
+    {
         send_ERR(listening_socket, cl_addr, NOT_FOUND_ERRCODE);
         printf("File not found\n");
-    return 0;
-}
+        return 0;
+    }
 
     if(strcmp(transfer_mode_s, NETASCII_MODE_S))
         *transfer_mode = NETASCII_MODE;
@@ -88,20 +89,22 @@ int is_request_valid(int listening_socket, char *buffer, int* transfer_mode, str
 
 int main(int argc, char const *argv[])
 {
-    int ret, listening_socket, transfer_socket;
+    int ret, transfer_mode, listening_socket, transfer_socket, transfer_ID = 0;
     unsigned short port_number;
     FILE* log;
 
     pid_t PID;
 
     struct sockaddr_in my_addr, sv_transfer_addr, cl_addr;
+    int cl_addr_len = sizeof(cl_addr);
 
-    char local_directory[MAX_DIR_LENGTH];
+    char local_directory[MAX_DIR_LENGTH],
+         buffer[MAX_PKT_SIZE];
 
     if(argc != 3)
     {
         printf("Usage: ./tftp_server <port> <path/to/files>\n");
-        exit(1);
+        exit(0);
     }
 
 
@@ -117,7 +120,7 @@ int main(int argc, char const *argv[])
 
     listening_socket = socket(AF_INET, SOCK_DGRAM, 0);
     if(listening_socket < 0)
-        error("creation of the socket");
+        error("could not create listening socket");
 
     printf("Listening socket successfully created: %d\n", listening_socket);
 
@@ -127,11 +130,24 @@ int main(int argc, char const *argv[])
     my_addr.sin_addr.s_addr = INADDR_ANY;
 
     ret = bind(listening_socket, (struct sockaddr*)&my_addr, sizeof(my_addr));
-    if(ret)
-        error("bind on listening_socket");
+    if(ret == -1)
+        error("could not bind on listening_socket");
 
-    printf("bind() succesful on socket %d\n", listening_socket);
+    printf("bind() successful on socket %d\n", listening_socket);
     printf("Ready to serve requests on port %d\n", port_number);
+
+    while(1)
+    {
+        ret = recvfrom(listening_socket, buffer,MAX_PKT_SIZE, 0, (struct sockaddr*)&cl_addr, &cl_addr_len);
+        if(ret == -1)
+            error("An error has occurred while receiving the client request\n");
+
+        if(is_request_valid(listening_socket, buffer, &transfer_mode, cl_addr))
+        {
+            
+        }
+
+    }
 
 
     return 0;
