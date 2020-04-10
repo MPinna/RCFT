@@ -10,7 +10,10 @@
 #define MAX_DATA_SEGMENT_SIZE 512
 #define MAX_PKT_SIZE 516
 
+#define NETASCII_MODE 0
+#define OCTET_MODE 1
 #define NETASCII_MODE_S "netascii\0"
 #define OCTET_MODE_S "octet\0"
+#define TRANSFER_MODE_MAX_LEN 10
 
 #define ADDR_STRING_LENGTH 16
