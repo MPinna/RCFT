@@ -64,7 +64,7 @@ int get_filenames(char* user_get_command, char *remote, char *local)
 
 void txt_transfer(int sd, char* buffer, struct sockaddr_in sv_addr, char* local_filename, int len)
 {
-    short opcode,
+    short opcode;
 
     FILE *dest;
     dest = fopen(local_filename, "w");
