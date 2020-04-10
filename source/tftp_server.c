@@ -20,7 +20,30 @@ void log(char* message)
 
 }
 
-int send_error()
+void send_ERR(int listening_socket, struct sockaddr_in cl_addr, short errcode)
+{
+    uint16_t opcode_n = htons(ERR_OPCODE);
+    uint16_t err_code_n = htons(errcode);
+    int pos = 0, ret;
+    char buffer[MAX_PKT_SIZE];
+
+    // craft ERR packet
+    memcpy(buffer + pos, &opcode_n, sizeof(opcode_n));
+    pos += sizeof(opcode_n);
+
+    memcpy(buffer + pos, &err_code_n, sizeof(err_code_n));
+    pos += sizeof(err_code_n);
+
+            // strcpy(buffer + pos, "\0");
+    memcpy(buffer + pos, "\0", 1); // no error string attached
+    pos += 1;
+
+    // send ERR packet to client
+    ret = sendto(listening_socket, buffer, pos, 0, (struct sockaddr*)&cl_addr, sizeof(cl_addr));
+    if(ret == -1)
+        printf("An error has occurred while trying to send the ERR packet to the client\n");
+    return;
+}
 {
     return 0;
 }
