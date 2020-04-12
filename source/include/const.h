@@ -9,6 +9,8 @@
 
 #define MAX_DATA_SEGMENT_SIZE 512
 #define MAX_PKT_SIZE 516
+#define MAX_BLOCK_NUM 0xFFFF
+#define ACK_PKT_SIZE 4
 
 #define NETASCII_MODE 0
 #define OCTET_MODE 1
