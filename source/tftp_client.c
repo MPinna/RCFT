@@ -62,22 +62,211 @@ int get_filenames(char* user_get_command, char *remote, char *local)
     return 0;
 }
 
-void txt_transfer(int sd, char* buffer, struct sockaddr_in sv_addr, char* local_filename, int len)
+void send_ACK(int sd, struct sockaddr_in sv_transf_addr, short block_num)
 {
-    short opcode;
+    short opcode = htons(ACK_OPCODE), block = htons(block_num);
+    int pos = 0;
+    char buffer[ACK_PKT_SIZE];
+    socklen_t sv_addr_len = sizeof(sv_transf_addr);
 
+    memcpy(buffer + pos, &opcode, sizeof(opcode));
+    pos += sizeof(opcode);
+
+    memcpy(buffer + pos, &block, sizeof(block));
+    pos += sizeof(block);
+
+    sendto(sd, buffer, pos, 0, (struct sockaddr*)&sv_transf_addr, sv_addr_len);
+}
+
+void txt_transfer(int sd, char* buffer, struct sockaddr_in sv_transf_addr, char* local_filename, int len)
+{
+    short opcode, block_num;
+    int block_counter = 1, pos;
     FILE *dest;
+    socklen_t sv_addr_len = sizeof(sv_transf_addr);
+
     dest = fopen(local_filename, "w");
     if(!dest)
     {
         printf("Can't open %s\n", local_filename);
         return;
     }
+    /*
+                   2 bytes     2 bytes      n bytes
+                   ----------------------------------
+                  | Opcode |   Block #  |   Data     |
+                   ----------------------------------
+                            DATA packet
+    */
+
+   while(1)
+   {
+       len = len - sizeof(opcode) - sizeof(block_num);
+       pos = 0;
+
+       memcpy(&opcode, buffer + pos, sizeof(opcode));
+       pos += sizeof(opcode);
+       opcode = ntohs(opcode);
+
+       memcpy(&block_num, buffer + pos, sizeof(block_num));
+       pos += sizeof(block_num);
+       block_num = ntohs(block_num);
+
+        if(opcode != DTA_OPCODE || block_num != block_counter %(MAX_BLOCK_NUM + 1))
+        {
+            printf("Packet %d corrupted\n", block_num);
+            return;
+        }
+
+        // save DATA section of packet content into dest
+        for (size_t i = 0; i < len; ++i)
+            fputc((int)(buffer + pos + i), dest);
+        
+        printf("Received block n. %d for file %s\n", block_counter, local_filename);
+        send_ACK(sd, sv_transf_addr, block_num);
+
+        if(len < MAX_DATA_SEGMENT_SIZE) // last DATA packet has been received
+        {
+            fclose(dest);
+            printf("%s: download completed\n", local_filename);
+            break;
+        }
+        else
+        {
+            block_counter++;
+            len = recvfrom(sd, buffer, MAX_PKT_SIZE, 0, (struct sockaddr*)&sv_transf_addr, &sv_addr_len);
+
+        }
+   }
 }
 
-void bin_transfer(int sd, char* buffer, struct sockaddr_in sv_addr, char* local_filename, int len)
+void transfer(int sd, char* buffer, struct sockaddr_in sv_transf_addr, char* local_filename, int len, int transfer_mode)
 {
-    return;
+    short opcode, block_num;
+    int block_counter = 1, pos;
+    FILE *dest;
+    socklen_t sv_addr_len = sizeof(sv_transf_addr);
+
+    if(transfer_mode == NETASCII_MODE)
+        dest = fopen(local_filename, "w");
+    else
+        dest = fopen(local_filename, "wb");
+
+    if(!dest)
+    {
+        printf("Can't open %s\n", local_filename);
+        return;
+    }
+    /*
+                   2 bytes     2 bytes      n bytes
+                   ----------------------------------
+                  | Opcode |   Block #  |   Data     |
+                   ----------------------------------
+                            DATA packet
+    */
+
+   while(1)
+   {
+       len = len - sizeof(opcode) - sizeof(block_num);
+       pos = 0;
+
+       memcpy(&opcode, buffer + pos, sizeof(opcode));
+       pos += sizeof(opcode);
+       opcode = ntohs(opcode);
+
+       memcpy(&block_num, buffer + pos, sizeof(block_num));
+       pos += sizeof(block_num);
+       block_num = ntohs(block_num);
+
+        if(opcode != DTA_OPCODE || block_num != block_counter %(MAX_BLOCK_NUM + 1))
+        {
+            printf("Packet %d corrupted\n", block_num);
+            return;
+        }
+
+        // save DATA section of packet content into dest
+        if(transfer_mode == NETASCII_MODE)
+            for (size_t i = 0; i < len; ++i)
+                fputc(buffer + pos + i, dest);
+        else
+            fwrite(buffer + pos, len, 1, dest);
+
+        send_ACK(sd, sv_transf_addr, block_num);
+
+        if(len < MAX_DATA_SEGMENT_SIZE) // last DATA packet has been received
+        {
+            fclose(dest);
+            printf("%s: download completed\n", local_filename);
+            break;
+        }
+        else
+        {
+            block_counter++;
+            len = recvfrom(sd, buffer, MAX_PKT_SIZE, 0, (struct sockaddr*)&sv_transf_addr, &sv_addr_len);
+
+        }
+   }
+}
+
+
+void bin_transfer(int sd, char* buffer, struct sockaddr_in sv_transf_addr, char* local_filename, int len)
+{
+    short opcode, block_num;
+    int block_counter = 1, pos;
+    FILE *dest;
+    socklen_t sv_addr_len = sizeof(sv_transf_addr);
+
+    dest = fopen(local_filename, "wb");
+    if(!dest)
+    {
+        printf("Can't open %s\n", local_filename);
+        return;
+    }
+    /*
+                   2 bytes     2 bytes      n bytes
+                   ----------------------------------
+                  | Opcode |   Block #  |   Data     |
+                   ----------------------------------
+                            DATA packet
+    */
+
+   while(1)
+   {
+       len = len - sizeof(opcode) - sizeof(block_num);
+       pos = 0;
+
+       memcpy(&opcode, buffer + pos, sizeof(opcode));
+       pos += sizeof(opcode);
+       opcode = ntohs(opcode);
+
+       memcpy(&block_num, buffer + pos, sizeof(block_num));
+       pos += sizeof(block_num);
+       block_num = ntohs(block_num);
+
+        if(opcode != DTA_OPCODE || block_num != block_counter %(MAX_BLOCK_NUM + 1))
+        {
+            printf("Packet %d corrupted\n", block_num);
+            return;
+        }
+
+        // save DATA section of packet content into dest
+        fwrite(buffer + pos, len, 1, dest);
+        
+        send_ACK(sd, sv_transf_addr, block_num);
+
+        if(len < MAX_DATA_SEGMENT_SIZE) // last DATA packet has been received
+        {
+            fclose(dest);
+            printf("%s: download completed\n", local_filename);
+            break;
+        }
+        else
+        {
+            block_counter++;
+            len = recvfrom(sd, buffer, MAX_PKT_SIZE, 0, (struct sockaddr*)&sv_transf_addr, &sv_addr_len);
+
+        }
+   }
 }
 
 void request_file(int sd, struct sockaddr_in *sv_addr, char *remote_filename, char *local_filename, int transfer_mode)
@@ -99,7 +288,6 @@ void request_file(int sd, struct sockaddr_in *sv_addr, char *remote_filename, ch
     strcpy(buffer + pos, remote_filename);
     pos += strlen(remote_filename) + 1;
 
-    printf("Transfer mode: ");
     if(transfer_mode == 0)
     {
         strcpy(buffer + pos, OCTET_MODE_S);
@@ -113,6 +301,11 @@ void request_file(int sd, struct sockaddr_in *sv_addr, char *remote_filename, ch
 
     // send the RRQ packet
     ret = sendto(sd, buffer, pos, 0, (struct sockaddr*)&sv_addr, sizeof(sv_addr));
+    if(ret == -1)
+    {
+        printf("An error has occurred while sending the RRQ\n");
+        return;
+    }
 
     // receive server response
     response_length = recvfrom(sd, buffer, MAX_PKT_SIZE, 0, (struct sockaddr*)&sv_transfer_addr, &sv_transfer_addr_len);
@@ -143,10 +336,12 @@ void request_file(int sd, struct sockaddr_in *sv_addr, char *remote_filename, ch
     }
 
     printf("Starting download...\n");
-    if(transfer_mode == NETASCII_MODE_S)
-        txt_transfer();
-    else
-        bin_transfer();
+    // if(transfer_mode == NETASCII_MODE_S)
+    //     txt_transfer(sd, buffer, sv_transfer_addr, local_filename, response_length);
+    // else
+    //     bin_transfer(sd, buffer, sv_transfer_addr, local_filename, response_length);
+
+    transfer(sd, buffer, sv_transfer_addr, local_filename, response_length, transfer_mode);
     return;
 }
 
@@ -159,12 +354,11 @@ int main(int argc, char const *argv[])
           remote_filename[MAX_FILENAME_LENGTH],
           local_filename[MAX_FILENAME_LENGTH];
 
-    // sockets variables
+    // socket variables
     int sd;
     char sv_addr_string[ADDR_STRING_LENGTH];
     unsigned short sv_port;
     struct sockaddr_in sv_addr, my_addr;
-    socklen_t addrlen = sizeof(sv_addr);
 
     if(argc < 3)
     {
@@ -247,6 +441,7 @@ int main(int argc, char const *argv[])
                         }
                     }
                     printf("Downloading file %s from server at %s:%d to %s. Transfer mode: %s\n", remote_filename, sv_addr_string, sv_port, local_filename, ((transfer_mode == OCTET_MODE)?OCTET_MODE_S:NETASCII_MODE_S));
+
                     request_file(sd, &sv_addr, remote_filename, local_filename, transfer_mode);
 
                 }
