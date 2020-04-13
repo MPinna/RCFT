@@ -51,7 +51,6 @@ int is_request_valid(int listening_socket, char *buffer, int* transfer_mode, str
     uint16_t opcode;
     char local_filename[MAX_DIR_LENGTH],
         transfer_mode_s[TRANSFER_MODE_MAX_LEN];
-        // filepath[2*MAX_DIR_LENGTH]; // will contain the full path of the file being requested
     
     strcpy(*filepath, BASE_DIRECTORY);
 /*
@@ -138,7 +137,7 @@ void transfer(int transfer_socket, struct sockaddr_in cl_addr, char* filepath, i
     while(1)
     {
         block_counter++;
-        // printf("Sending block n. %d\n", block_counter);
+        
         pos = 0;
 /*
                    2 bytes     2 bytes      n bytes
@@ -182,6 +181,7 @@ void transfer(int transfer_socket, struct sockaddr_in cl_addr, char* filepath, i
 
             if(byte_counter < MAX_DATA_SEGMENT_SIZE)
             {
+                printf("Transfer completed. (%d/%d blocks sent)\n", block_counter, block_counter);
                 fclose(src);
                 break;
             }
@@ -273,8 +273,6 @@ int main(int argc, char const *argv[])
             ret = bind(transfer_socket, (struct sockaddr*)&sv_transfer_addr, sizeof(sv_transfer_addr));
             if(ret == -1)
                 error("could not bind on transfer_socket");
-
-            // log
 
             PID = fork();
 

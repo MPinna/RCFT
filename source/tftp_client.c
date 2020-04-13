@@ -147,7 +147,7 @@ void transfer(int sd, char* buffer, struct sockaddr_in sv_transf_addr, char* loc
         if(len < MAX_DATA_SEGMENT_SIZE) // last DATA packet has been received
         {
             fclose(dest);
-            printf("%s: download completed\n", local_filename);
+            printf("%s: download completed (%d/%d blocks received)\n", local_filename, block_counter, block_counter);
             break;
         }
         else
