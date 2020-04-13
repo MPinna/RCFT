@@ -4,7 +4,8 @@
 #define QUIET_MODE_FLAG "-q"
 #define MAX_USER_CMD_LENGTH 1024
 #define MAX_FILENAME_LENGTH 200
-
+#define CLIENT_PORT 0 // 0 will allow kernel to bind socket
+                      // to first available port
 
 #define RRQ_PACKET_MAX_SIZE 212
 // 2 + 200 + 1 + 8 + 1 [OPCODE + FILENAME + \0 + strlen("netascii") + \0]
@@ -244,10 +245,6 @@ void request_file(int sd, struct sockaddr_in sv_addr, char *remote_filename, cha
     }
 
     printf("Starting download...\n");
-    // if(transfer_mode == NETASCII_MODE_S)
-    //     txt_transfer(sd, buffer, sv_transfer_addr, local_filename, response_length);
-    // else
-    //     bin_transfer(sd, buffer, sv_transfer_addr, local_filename, response_length);
 
     transfer(sd, buffer, sv_transfer_addr, local_filename, response_length, transfer_mode);
     return;
@@ -292,7 +289,7 @@ int main(int argc, char const *argv[])
 
     memset(&my_addr, 0, sizeof(my_addr));
     my_addr.sin_family = AF_INET;
-    my_addr.sin_port = htons(4242); // bind socket to first available port
+    my_addr.sin_port = htons(CLIENT_PORT);
     my_addr.sin_addr.s_addr = INADDR_ANY;
 
     ret = bind(sd, (struct sockaddr*)&my_addr, sizeof(my_addr));
