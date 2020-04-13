@@ -80,7 +80,7 @@ int is_request_valid(int listening_socket, char *buffer, int* transfer_mode, str
     if(!exists(*filepath))
     {
         send_ERR(listening_socket, cl_addr, NOT_FOUND_ERRCODE);
-        printf("File not found: %s\n", *filepath);
+        printf("File not found: %s\n\n", *filepath);
         return 0;
     }
 
