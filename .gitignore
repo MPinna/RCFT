@@ -50,6 +50,8 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# ELF with no explicit extension
 source/tftp_server
 source/tftp_client
 source/cose
