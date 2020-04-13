@@ -248,8 +248,41 @@ int main(int argc, char const *argv[])
         if(ret == -1)
             error("An error has occurred while receiving the client request\n");
 
-        if(is_request_valid(listening_socket, buffer, &transfer_mode, cl_addr))
+        if(is_request_valid(listening_socket, buffer, &transfer_mode, cl_addr, &filepath))
         {
+            transfer_socket = socket(AF_INET, SOCK_DGRAM, 0);
+            if(transfer_socket == -1)
+                error("could not create transfer socket");
+
+            printf("Transfer socket successfully created: %d\n", transfer_socket);
+
+            memset(&sv_transfer_addr, 0, sizeof(sv_transfer_addr));
+            sv_transfer_addr.sin_family = AF_INET;
+            sv_transfer_addr.sin_port = 0; // will bind to random available port
+            sv_transfer_addr.sin_addr.s_addr = INADDR_ANY;
+
+            ret = bind(transfer_socket, (struct sockaddr*)&sv_transfer_addr, sizeof(sv_transfer_addr));
+            if(ret == -1)
+                error("could not bind on transfer_socket");
+
+            printf("Starting transfer of file %s\n", filepath);
+            // log
+
+            PID = fork();
+
+            if(PID != 0) // parent process
+                close(transfer_socket);
+            else
+        {
+                close(listening_socket); // transfer processes don't need to listen on first socket
+
+                transfer(transfer_socket, cl_addr, filepath, transfer_mode);
+
+                close(transfer_socket);
+
+                printf("Transfer of file %s completed\n", filepath);
+                exit(0);
+            }
             
         }
 
