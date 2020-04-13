@@ -46,7 +46,7 @@ void send_ERR(int listening_socket, struct sockaddr_in cl_addr, short errcode)
     return;
 }
 
-int is_request_valid(int listening_socket, char *buffer, int* transfer_mode, struct sockaddr_in cl_addr, char* filepath[])
+int is_request_valid(int listening_socket, char *buffer, int* transfer_mode, struct sockaddr_in cl_addr, char** filepath)
 {
     uint16_t opcode;
     char local_filename[MAX_DIR_LENGTH],
@@ -62,6 +62,7 @@ int is_request_valid(int listening_socket, char *buffer, int* transfer_mode, str
                            RRQ/WRQ packet
 */
     int pos = 0;
+    printf("Checking if request is valid\n");
     memcpy(&opcode, buffer + pos, sizeof(opcode));
     pos += sizeof(opcode);
 
@@ -90,6 +91,7 @@ int is_request_valid(int listening_socket, char *buffer, int* transfer_mode, str
     else
         if(strcmp(transfer_mode_s, OCTET_MODE_S))
             *transfer_mode = OCTET_MODE;
+    printf("Request is valid\n");
     return 1;
 }
 
@@ -124,7 +126,6 @@ void transfer(int transfer_socket, struct sockaddr_in cl_addr, char* filepath, i
     FILE* src;
 
     printf("filepath = %s\n", filepath);
-    return;
 
     if(transfer_mode == NETASCII_MODE)
         src = fopen(filepath, "r");
@@ -138,9 +139,12 @@ void transfer(int transfer_socket, struct sockaddr_in cl_addr, char* filepath, i
         return;
     }
 
+    printf("File %s found\n", filepath);
+
     while(1)
     {
         block_counter++;
+        printf("Sending block n. %d\n", block_counter);
         pos = 0;
 /*
                    2 bytes     2 bytes      n bytes
@@ -201,17 +205,19 @@ void transfer(int transfer_socket, struct sockaddr_in cl_addr, char* filepath, i
 
 int main(int argc, char const *argv[])
 {
-    int ret, transfer_mode, listening_socket, transfer_socket, transfer_ID = 0;
+    int ret, transfer_mode, listening_socket, transfer_socket;
     unsigned short port_number;
-    
+
     pid_t PID;
 
     struct sockaddr_in my_addr, sv_transfer_addr, cl_addr;
     socklen_t cl_addr_len = sizeof(cl_addr);
 
     char local_directory[MAX_DIR_LENGTH],
-         filepath[2*MAX_DIR_LENGTH],
+         *filepath,
          buffer[MAX_PKT_SIZE];
+
+    filepath = malloc(2*MAX_DIR_LENGTH);
 
     if(argc != 3)
     {
@@ -254,6 +260,8 @@ int main(int argc, char const *argv[])
         ret = recvfrom(listening_socket, buffer, MAX_PKT_SIZE, 0, (struct sockaddr*)&cl_addr, &cl_addr_len);
         if(ret == -1)
             error("An error has occurred while receiving the client request\n");
+        
+        printf("Request received from client\n");
 
         if(is_request_valid(listening_socket, buffer, &transfer_mode, cl_addr, &filepath))
         {
@@ -272,20 +280,25 @@ int main(int argc, char const *argv[])
             if(ret == -1)
                 error("could not bind on transfer_socket");
 
-            printf("Starting transfer of file %s\n", filepath);
             // log
 
             PID = fork();
 
             if(PID != 0) // parent process
+            {
                 close(transfer_socket);
+                printf("transfer_socket closed by parent process %d\n", getpid());
+            }
             else
             {
                 close(listening_socket); // transfer processes don't need to listen on first socket
+                printf("listening_socket closed by child process %d\n", getpid()); 
 
+                printf("Process %d: starting transfer of file %s\n", getpid(), filepath);
                 transfer(transfer_socket, cl_addr, filepath, transfer_mode);
 
                 close(transfer_socket);
+                printf("transfer_socket closed by child process %d\n", getpid());
 
                 printf("Transfer of file %s completed\n", filepath);
                 exit(0);

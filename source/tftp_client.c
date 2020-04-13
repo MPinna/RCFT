@@ -157,7 +157,7 @@ void transfer(int sd, char* buffer, struct sockaddr_in sv_transf_addr, char* loc
    }
 }
 
-void request_file(int sd, struct sockaddr_in *sv_addr, char *remote_filename, char *local_filename, int transfer_mode)
+void request_file(int sd, struct sockaddr_in sv_addr, char *remote_filename, char *local_filename, int transfer_mode)
 {
     short opcode = htons(RRQ_OPCODE);
     short errcode;
@@ -198,16 +198,23 @@ void request_file(int sd, struct sockaddr_in *sv_addr, char *remote_filename, ch
         pos += strlen(NETASCII_MODE_S) + 1;
     }
 
+    printf("RRQ packet crafted. Sending...\n");
+
     // send the RRQ packet
     ret = sendto(sd, buffer, pos, 0, (struct sockaddr*)&sv_addr, sizeof(sv_addr));
     if(ret == -1)
     {
         printf("An error has occurred while sending the RRQ\n");
+        perror("error");
         return;
     }
 
+    printf("RRQ sent. Waiting for server response...\n");
+
     // receive server response
     response_length = recvfrom(sd, buffer, MAX_PKT_SIZE, 0, (struct sockaddr*)&sv_transfer_addr, &sv_transfer_addr_len);
+
+    printf("Received response from server\n");
 
     pos = 0;
 
@@ -219,6 +226,7 @@ void request_file(int sd, struct sockaddr_in *sv_addr, char *remote_filename, ch
     if(opcode == ERR_OPCODE)
     {
         memcpy(&errcode, buffer + pos, sizeof(errcode));
+        errcode = ntohs(errcode);
         switch (errcode)
         {
             case NOT_FOUND_ERRCODE:
@@ -283,7 +291,7 @@ int main(int argc, char const *argv[])
 
     memset(&my_addr, 0, sizeof(my_addr));
     my_addr.sin_family = AF_INET;
-    my_addr.sin_port = 0; // bind socket to first available port
+    my_addr.sin_port = htons(4242); // bind socket to first available port
     my_addr.sin_addr.s_addr = INADDR_ANY;
 
     ret = bind(sd, (struct sockaddr*)&my_addr, sizeof(my_addr));
@@ -341,9 +349,9 @@ int main(int argc, char const *argv[])
                             break;
                         }
                     }
-                    printf("Downloading file %s from server at %s:%d to %s. Transfer mode: %s\n", remote_filename, sv_addr_string, sv_port, local_filename, ((transfer_mode == OCTET_MODE)?OCTET_MODE_S:NETASCII_MODE_S));
+                    printf("Downloading file \'%s\' from server %s:%d to \'%s\'.\nTransfer mode: %s\n\n", remote_filename, sv_addr_string, sv_port, local_filename, ((transfer_mode == OCTET_MODE)?OCTET_MODE_S:NETASCII_MODE_S));
 
-                    request_file(sd, &sv_addr, remote_filename, local_filename, transfer_mode);
+                    request_file(sd, sv_addr, remote_filename, local_filename, transfer_mode);
 
                 }
                 break;
