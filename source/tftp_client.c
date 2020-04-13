@@ -78,68 +78,6 @@ void send_ACK(int sd, struct sockaddr_in sv_transf_addr, short block_num)
     sendto(sd, buffer, pos, 0, (struct sockaddr*)&sv_transf_addr, sv_addr_len);
 }
 
-void txt_transfer(int sd, char* buffer, struct sockaddr_in sv_transf_addr, char* local_filename, int len)
-{
-    short opcode, block_num;
-    int block_counter = 1, pos;
-    FILE *dest;
-    socklen_t sv_addr_len = sizeof(sv_transf_addr);
-
-    dest = fopen(local_filename, "w");
-    if(!dest)
-    {
-        printf("Can't open %s\n", local_filename);
-        return;
-    }
-    /*
-                   2 bytes     2 bytes      n bytes
-                   ----------------------------------
-                  | Opcode |   Block #  |   Data     |
-                   ----------------------------------
-                            DATA packet
-    */
-
-   while(1)
-   {
-       len = len - sizeof(opcode) - sizeof(block_num);
-       pos = 0;
-
-       memcpy(&opcode, buffer + pos, sizeof(opcode));
-       pos += sizeof(opcode);
-       opcode = ntohs(opcode);
-
-       memcpy(&block_num, buffer + pos, sizeof(block_num));
-       pos += sizeof(block_num);
-       block_num = ntohs(block_num);
-
-        if(opcode != DTA_OPCODE || block_num != block_counter %(MAX_BLOCK_NUM + 1))
-        {
-            printf("Packet %d corrupted\n", block_num);
-            return;
-        }
-
-        // save DATA section of packet content into dest
-        for (size_t i = 0; i < len; ++i)
-            fputc((int)(buffer + pos + i), dest);
-        
-        printf("Received block n. %d for file %s\n", block_counter, local_filename);
-        send_ACK(sd, sv_transf_addr, block_num);
-
-        if(len < MAX_DATA_SEGMENT_SIZE) // last DATA packet has been received
-        {
-            fclose(dest);
-            printf("%s: download completed\n", local_filename);
-            break;
-        }
-        else
-        {
-            block_counter++;
-            len = recvfrom(sd, buffer, MAX_PKT_SIZE, 0, (struct sockaddr*)&sv_transf_addr, &sv_addr_len);
-
-        }
-   }
-}
-
 void transfer(int sd, char* buffer, struct sockaddr_in sv_transf_addr, char* local_filename, int len, int transfer_mode)
 {
     short opcode, block_num;
@@ -191,67 +129,6 @@ void transfer(int sd, char* buffer, struct sockaddr_in sv_transf_addr, char* loc
         else
             fwrite(buffer + pos, len, 1, dest);
 
-        send_ACK(sd, sv_transf_addr, block_num);
-
-        if(len < MAX_DATA_SEGMENT_SIZE) // last DATA packet has been received
-        {
-            fclose(dest);
-            printf("%s: download completed\n", local_filename);
-            break;
-        }
-        else
-        {
-            block_counter++;
-            len = recvfrom(sd, buffer, MAX_PKT_SIZE, 0, (struct sockaddr*)&sv_transf_addr, &sv_addr_len);
-
-        }
-   }
-}
-
-
-void bin_transfer(int sd, char* buffer, struct sockaddr_in sv_transf_addr, char* local_filename, int len)
-{
-    short opcode, block_num;
-    int block_counter = 1, pos;
-    FILE *dest;
-    socklen_t sv_addr_len = sizeof(sv_transf_addr);
-
-    dest = fopen(local_filename, "wb");
-    if(!dest)
-    {
-        printf("Can't open %s\n", local_filename);
-        return;
-    }
-    /*
-                   2 bytes     2 bytes      n bytes
-                   ----------------------------------
-                  | Opcode |   Block #  |   Data     |
-                   ----------------------------------
-                            DATA packet
-    */
-
-   while(1)
-   {
-       len = len - sizeof(opcode) - sizeof(block_num);
-       pos = 0;
-
-       memcpy(&opcode, buffer + pos, sizeof(opcode));
-       pos += sizeof(opcode);
-       opcode = ntohs(opcode);
-
-       memcpy(&block_num, buffer + pos, sizeof(block_num));
-       pos += sizeof(block_num);
-       block_num = ntohs(block_num);
-
-        if(opcode != DTA_OPCODE || block_num != block_counter %(MAX_BLOCK_NUM + 1))
-        {
-            printf("Packet %d corrupted\n", block_num);
-            return;
-        }
-
-        // save DATA section of packet content into dest
-        fwrite(buffer + pos, len, 1, dest);
-        
         send_ACK(sd, sv_transf_addr, block_num);
 
         if(len < MAX_DATA_SEGMENT_SIZE) // last DATA packet has been received
