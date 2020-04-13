@@ -106,6 +106,93 @@ int is_ACK_valid(char* buffer, short block_number)
     return 1;
 }
 
+void transfer(int transfer_socket, struct sockaddr_in cl_addr, char* filepath, int transfer_mode)
+{
+    uint16_t opcode = htons(DTA_OPCODE);
+    short block_counter = 0, block_counter_net;
+    int  pos = 0, byte_counter, ret;
+    socklen_t addr_len;
+    char work;
+    char buffer[MAX_PKT_SIZE];
+
+    FILE* src;
+
+    printf("filepath = %s\n", filepath);
+    return;
+
+    if(transfer_mode == NETASCII_MODE)
+        src = fopen(filepath, "r");
+    else
+        src = fopen(filepath, "rb");
+
+    if(src == NULL)
+    {
+        send_ERR(transfer_socket, cl_addr, NOT_FOUND_ERRCODE);
+        printf("Can't open %s", filepath);
+        return;
+    }
+
+    while(1)
+    {
+        block_counter++;
+        pos = 0;
+/*
+                   2 bytes     2 bytes      n bytes
+                   ----------------------------------
+                  | Opcode |   Block #  |   Data     |
+                   ----------------------------------
+*/
+        memcpy(buffer + pos, &opcode, sizeof(opcode));
+        pos += sizeof(opcode);
+
+        block_counter_net = htons(block_counter);
+        memcpy(buffer + pos, &block_counter_net, sizeof(block_counter_net));
+        pos += sizeof(block_counter_net);
+
+        if(transfer_mode == NETASCII_MODE)
+        {
+            for (byte_counter = 0; byte_counter < MAX_DATA_SEGMENT_SIZE; byte_counter++)
+            {
+                work = fgetc(src);
+                if(work == EOF)
+                    break;
+
+                sprintf((char*)(buffer + pos + byte_counter), "%c", work);
+            }
+            
+        }
+        else
+        {
+            byte_counter = fread(buffer + pos, 1, MAX_DATA_SEGMENT_SIZE, src);
+        }
+        
+        sendto(transfer_socket, buffer, pos + byte_counter, 0, (struct sockaddr*)&cl_addr, sizeof(cl_addr));
+
+        recvfrom(transfer_socket, buffer, ACK_PKT_SIZE, 0, (struct sockaddr*)&cl_addr, &addr_len);
+
+        if(!is_ACK_valid(buffer, block_counter))
+        {
+            printf("ACK not valid\n");
+            return;
+        }
+
+            if(byte_counter < MAX_DATA_SEGMENT_SIZE)
+            {
+                fclose(src);
+                break;
+            }
+            else
+                if(transfer_mode == OCTET_MODE)
+                {
+                    ret = fseek(src, MAX_DATA_SEGMENT_SIZE*block_counter, SEEK_SET);
+                    if(ret == -1)
+                    {
+                        return;
+                    }
+                }
+    }
+}
+
 int main(int argc, char const *argv[])
 {
     int ret, transfer_mode, listening_socket, transfer_socket, transfer_ID = 0;
