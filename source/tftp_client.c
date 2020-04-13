@@ -64,6 +64,15 @@ int get_filenames(char* user_get_command, char *remote, char *local)
 
 void send_ACK(int sd, struct sockaddr_in sv_transf_addr, short block_num)
 {
+/*
+                         2 bytes     2 bytes
+                         ---------------------
+                        | Opcode |   Block #  |
+                         ---------------------
+
+                              ACK packet
+*/
+
     short opcode = htons(ACK_OPCODE), block = htons(block_num);
     int pos = 0;
     char buffer[ACK_PKT_SIZE];
@@ -105,27 +114,29 @@ void transfer(int sd, char* buffer, struct sockaddr_in sv_transf_addr, char* loc
 
    while(1)
    {
-       len = len - sizeof(opcode) - sizeof(block_num);
-       pos = 0;
+        pos = 0;
 
-       memcpy(&opcode, buffer + pos, sizeof(opcode));
-       pos += sizeof(opcode);
-       opcode = ntohs(opcode);
+        memcpy(&opcode, buffer + pos, sizeof(opcode));
+        pos += sizeof(opcode);
+        opcode = ntohs(opcode);
 
-       memcpy(&block_num, buffer + pos, sizeof(block_num));
-       pos += sizeof(block_num);
-       block_num = ntohs(block_num);
+        memcpy(&block_num, buffer + pos, sizeof(block_num));
+        pos += sizeof(block_num);
+        block_num = ntohs(block_num);
 
         if(opcode != DTA_OPCODE || block_num != block_counter %(MAX_BLOCK_NUM + 1))
         {
-            printf("Packet %d corrupted\n", block_num);
+            printf("Packet %d not valid\n", block_num);
+            fclose(dest);
             return;
         }
 
         // save DATA section of packet content into dest
+        len = len - sizeof(opcode) - sizeof(block_num);
+
         if(transfer_mode == NETASCII_MODE)
             for (size_t i = 0; i < len; ++i)
-                fputc(buffer + pos + i, dest);
+                fputc(*(buffer + pos + i), dest);
         else
             fwrite(buffer + pos, len, 1, dest);
 
@@ -156,19 +167,30 @@ void request_file(int sd, struct sockaddr_in *sv_addr, char *remote_filename, ch
 
     // socket used to receive the file from the server
     socklen_t sv_transfer_addr_len = sizeof(sv_transfer_addr);
-    int ret, response_length, pos = 0;
+    int ret, response_length, pos;
+/*
+            2 bytes     string    1 byte     string   1 byte
+            ------------------------------------------------
+           | Opcode |  Filename  |   0  |    Mode    |   0  |
+            ------------------------------------------------
+                          RRQ packet
+*/
+
 
     // craft the RRQ packet to be sent
+    pos = 0;
     memcpy(buffer + pos, &opcode, sizeof(opcode));
     pos += sizeof(opcode);
 
     strcpy(buffer + pos, remote_filename);
     pos += strlen(remote_filename) + 1;
 
+    // mode strings also include string terminator
+    // so there's no need to copy it manually
     if(transfer_mode == 0)
     {
         strcpy(buffer + pos, OCTET_MODE_S);
-        pos += strlen(OCTET_MODE_S) + 1;
+        pos += strlen(OCTET_MODE_S) + 1; // ... but strlen() does not
     }
     else
     {
@@ -199,15 +221,15 @@ void request_file(int sd, struct sockaddr_in *sv_addr, char *remote_filename, ch
         memcpy(&errcode, buffer + pos, sizeof(errcode));
         switch (errcode)
         {
-        case NOT_FOUND_ERRCODE:
-            printf("Error: file %s not found on server. Quitting...\n", remote_filename);
-            break;
-        case ILLEGAL_OP_ERRCODE:
-            printf("Error: illegal operation. Quitting...\n");
-            break;
-        default:
-            printf("Unknow error type. Quitting...\n");
-            break;
+            case NOT_FOUND_ERRCODE:
+                printf("Error: file %s not found on server.\n", remote_filename);
+                break;
+            case ILLEGAL_OP_ERRCODE:
+                printf("Error: illegal operation.\n");
+                break;
+            default:
+                printf("Unknow error type.\n");
+                break;
         }
         return;
     }
@@ -267,6 +289,8 @@ int main(int argc, char const *argv[])
     ret = bind(sd, (struct sockaddr*)&my_addr, sizeof(my_addr));
     if(ret == -1)
         error("bind function failed");
+
+    printf("Socket %d bound to port %d\n", sd, ntohs(my_addr.sin_port));
 
     memset(&sv_addr, 0, sizeof(sv_addr));
     sv_addr.sin_family = AF_INET;
