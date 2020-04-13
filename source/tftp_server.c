@@ -8,7 +8,7 @@
 #define LOG_FILE "./log.txt"
 #define LOG_LOCK_FILE "./log.lock"
 
-void log(char* message)
+void write_to_log(char* message)
 {
     FILE *logptr;
     logptr = fopen(LOG_FILE, "w+");
@@ -46,15 +46,21 @@ void send_ERR(int listening_socket, struct sockaddr_in cl_addr, short errcode)
     return;
 }
 
-int is_request_valid(int listening_socket, char *buffer, int* transfer_mode, struct sockaddr_in cl_addr)
+int is_request_valid(int listening_socket, char *buffer, int* transfer_mode, struct sockaddr_in cl_addr, char* filepath[])
 {
     uint16_t opcode;
     char local_filename[MAX_DIR_LENGTH],
-        transfer_mode_s[TRANSFER_MODE_MAX_LEN],
-        filepath[2*MAX_DIR_LENGTH]; // will contain the full path of the file being requested
+        transfer_mode_s[TRANSFER_MODE_MAX_LEN];
+        // filepath[2*MAX_DIR_LENGTH]; // will contain the full path of the file being requested
     
-    strcpy(filepath, BASE_DIRECTORY);
-
+    strcpy(*filepath, BASE_DIRECTORY);
+/*
+            2 bytes     string    1 byte     string   1 byte
+            ------------------------------------------------
+           | Opcode |  Filename  |   0  |    Mode    |   0  |
+            ------------------------------------------------
+                           RRQ/WRQ packet
+*/
     int pos = 0;
     memcpy(&opcode, buffer + pos, sizeof(opcode));
     pos += sizeof(opcode);
@@ -71,8 +77,8 @@ int is_request_valid(int listening_socket, char *buffer, int* transfer_mode, str
     pos += strlen(local_filename) + 1; // add 1 to account for string terminator
 
     strcpy(transfer_mode_s, buffer + pos);
-    strcat(filepath, local_filename);
-    if(!exists(filepath))
+    strcat(*filepath, local_filename); //full path (base dir + filename)
+    if(!exists(*filepath))
     {
         send_ERR(listening_socket, cl_addr, NOT_FOUND_ERRCODE);
         printf("File not found\n");
@@ -83,7 +89,7 @@ int is_request_valid(int listening_socket, char *buffer, int* transfer_mode, str
         *transfer_mode = NETASCII_MODE;
     else
         if(strcmp(transfer_mode_s, OCTET_MODE_S))
-        *transfer_mode = OCTET_MODE;
+            *transfer_mode = OCTET_MODE;
     return 1;
 }
 
@@ -197,14 +203,14 @@ int main(int argc, char const *argv[])
 {
     int ret, transfer_mode, listening_socket, transfer_socket, transfer_ID = 0;
     unsigned short port_number;
-    FILE* log;
-
+    
     pid_t PID;
 
     struct sockaddr_in my_addr, sv_transfer_addr, cl_addr;
-    int cl_addr_len = sizeof(cl_addr);
+    socklen_t cl_addr_len = sizeof(cl_addr);
 
     char local_directory[MAX_DIR_LENGTH],
+         filepath[2*MAX_DIR_LENGTH],
          buffer[MAX_PKT_SIZE];
 
     if(argc != 3)
@@ -215,6 +221,7 @@ int main(int argc, char const *argv[])
 
 
     port_number = atoi(argv[1]);
+
     if(strlen(argv[2]) >= MAX_DIR_LENGTH)
     {
         printf("Pathname too long. Quitting...");
@@ -244,7 +251,7 @@ int main(int argc, char const *argv[])
 
     while(1)
     {
-        ret = recvfrom(listening_socket, buffer,MAX_PKT_SIZE, 0, (struct sockaddr*)&cl_addr, &cl_addr_len);
+        ret = recvfrom(listening_socket, buffer, MAX_PKT_SIZE, 0, (struct sockaddr*)&cl_addr, &cl_addr_len);
         if(ret == -1)
             error("An error has occurred while receiving the client request\n");
 
@@ -273,7 +280,7 @@ int main(int argc, char const *argv[])
             if(PID != 0) // parent process
                 close(transfer_socket);
             else
-        {
+            {
                 close(listening_socket); // transfer processes don't need to listen on first socket
 
                 transfer(transfer_socket, cl_addr, filepath, transfer_mode);
