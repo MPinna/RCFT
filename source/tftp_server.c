@@ -87,6 +87,25 @@ int is_request_valid(int listening_socket, char *buffer, int* transfer_mode, str
     return 1;
 }
 
+int is_ACK_valid(char* buffer, short block_number)
+{
+    int pos = 0;
+    short opcode, ack_block_number;
+
+    memcpy(&opcode, buffer + pos, sizeof(opcode));
+    pos += sizeof(opcode);
+    opcode = ntohs(opcode);
+
+    memcpy(&ack_block_number, buffer + pos, sizeof(ack_block_number));
+    pos += sizeof(ack_block_number);
+    ack_block_number = ntohs(ack_block_number);
+
+    if(opcode != ACK_OPCODE || ack_block_number!= block_number)
+        return 0;
+
+    return 1;
+}
+
 int main(int argc, char const *argv[])
 {
     int ret, transfer_mode, listening_socket, transfer_socket, transfer_ID = 0;
