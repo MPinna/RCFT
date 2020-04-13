@@ -91,6 +91,7 @@ void transfer(int sd, char* buffer, struct sockaddr_in sv_transf_addr, char* loc
 {
     short opcode, block_num;
     int block_counter = 1, pos;
+    size_t i;
     FILE *dest;
     socklen_t sv_addr_len = sizeof(sv_transf_addr);
 
@@ -135,7 +136,7 @@ void transfer(int sd, char* buffer, struct sockaddr_in sv_transf_addr, char* loc
         len = len - sizeof(opcode) - sizeof(block_num);
 
         if(transfer_mode == NETASCII_MODE)
-            for (size_t i = 0; i < len; ++i)
+            for (i = 0; i < len; ++i)
                 fputc(*(buffer + pos + i), dest);
         else
             fwrite(buffer + pos, len, 1, dest);
