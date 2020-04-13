@@ -144,7 +144,7 @@ void transfer(int transfer_socket, struct sockaddr_in cl_addr, char* filepath, i
     while(1)
     {
         block_counter++;
-        printf("Sending block n. %d\n", block_counter);
+        // printf("Sending block n. %d\n", block_counter);
         pos = 0;
 /*
                    2 bytes     2 bytes      n bytes
@@ -300,7 +300,7 @@ int main(int argc, char const *argv[])
                 close(transfer_socket);
                 printf("transfer_socket closed by child process %d\n", getpid());
 
-                printf("Transfer of file %s completed\n", filepath);
+                printf("Transfer of file %s completed\n\n", filepath);
                 exit(0);
             }
             
