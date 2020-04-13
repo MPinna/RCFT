@@ -200,8 +200,6 @@ void request_file(int sd, struct sockaddr_in sv_addr, char *remote_filename, cha
         pos += strlen(NETASCII_MODE_S) + 1;
     }
 
-    printf("RRQ packet crafted. Sending...\n");
-
     // send the RRQ packet
     ret = sendto(sd, buffer, pos, 0, (struct sockaddr*)&sv_addr, sizeof(sv_addr));
     if(ret == -1)
@@ -211,12 +209,8 @@ void request_file(int sd, struct sockaddr_in sv_addr, char *remote_filename, cha
         return;
     }
 
-    printf("RRQ sent. Waiting for server response...\n");
-
     // receive server response
     response_length = recvfrom(sd, buffer, MAX_PKT_SIZE, 0, (struct sockaddr*)&sv_transfer_addr, &sv_transfer_addr_len);
-
-    printf("Received response from server\n");
 
     pos = 0;
 

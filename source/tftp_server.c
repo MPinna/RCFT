@@ -62,7 +62,6 @@ int is_request_valid(int listening_socket, char *buffer, int* transfer_mode, str
                            RRQ/WRQ packet
 */
     int pos = 0;
-    printf("Checking if request is valid\n");
     memcpy(&opcode, buffer + pos, sizeof(opcode));
     pos += sizeof(opcode);
 
@@ -91,7 +90,6 @@ int is_request_valid(int listening_socket, char *buffer, int* transfer_mode, str
     else
         if(strcmp(transfer_mode_s, OCTET_MODE_S))
             *transfer_mode = OCTET_MODE;
-    printf("Request is valid\n");
     return 1;
 }
 
@@ -125,8 +123,6 @@ void transfer(int transfer_socket, struct sockaddr_in cl_addr, char* filepath, i
 
     FILE* src;
 
-    printf("filepath = %s\n", filepath);
-
     if(transfer_mode == NETASCII_MODE)
         src = fopen(filepath, "r");
     else
@@ -138,8 +134,6 @@ void transfer(int transfer_socket, struct sockaddr_in cl_addr, char* filepath, i
         printf("Can't open %s", filepath);
         return;
     }
-
-    printf("File %s found\n", filepath);
 
     while(1)
     {
@@ -253,7 +247,7 @@ int main(int argc, char const *argv[])
         error("could not bind on listening_socket");
 
     printf("bind() successful on socket %d\n", listening_socket);
-    printf("Ready to serve requests on port %d\n", port_number);
+    printf("Ready to serve requests on port %d\n\n", port_number);
 
     while(1)
     {
@@ -261,7 +255,7 @@ int main(int argc, char const *argv[])
         if(ret == -1)
             error("An error has occurred while receiving the client request\n");
         
-        printf("Request received from client\n");
+        printf("Request received from client %d\n", (int)ntohs(cl_addr.sin_port));
 
         if(is_request_valid(listening_socket, buffer, &transfer_mode, cl_addr, &filepath))
         {
